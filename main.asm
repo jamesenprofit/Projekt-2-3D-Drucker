@@ -12,6 +12,8 @@
 
 			.equ UMSCHALT_BIT  = 7		 ; Bit 7 in Port C für Umschaltung Hotend/Hotbed
 
+			.def bed		= r25
+			.def end		= r24
 			.def limit10	= r23
 			.def limit2		= r22
 			.def tolerance	= r21		 ; 
@@ -70,21 +72,23 @@ MAIN_PROGRAM_LOOP:
 			; --- C) Temperatur-Regelung: Hotend oder Hotbed ---
     
 			; 1. Prüfe Umschalt-Bit (Port C Pin 7)
-BIT_UMSCHALT:
-			in status, PINC
-			sbrs status, 7		; Teste Bit 7 (Umschalt_Bit).Springe, wenn Bit ist 1 (Umschalt_Bit)
-			rjmp REGULATE_HOTBED
+			
 
-			;sbi PINC,7			;Setze Bit 7 in PORTC Umschalt_Bit
-			cbi PORTC, 7		;Lösche Bit 7 in PORTC Umschalt_Bit 
+BIT_UMSCHALT:
+			sbis PORTC, UMSCHALT_BIT      ; Springe zur HOTBED_REGELUNG, wenn Bit 7 (Umschaltung) = 0 (FALSE)
+		    rjmp REGULATE_HOTBED         ; Wenn Bit 7 = 1 (TRUE), regle Hotend
+
+			rjmp REGULATE_HOTEND
 			; --- D) Schleifenende ---
-			rjmp MAIN_PROGRAM_LOOP       ; Beginne die Schleife erneut (kontinuierlicher Betrieb)
+			;rjmp MAIN_PROGRAM_LOOP     ; Beginne die Schleife erneut (kontinuierlicher Betrieb)
+
 
 
 ;******* Beginn Unterprogramm "Regulierung Hotend" ************************************************************
 REGULATE_HOTEND:
 	LDI tolerance,0x00
 	LDI limit2,0x00
+	cbi PORTC, UMSCHALT_BIT
 	in solltemp,PIND		; Lese Soll-Temp von Port D (8 Bit)
 	in temphotend,PINA		; Lese ist Temperatur von Port A (8 bit) 
 	
@@ -101,6 +105,7 @@ REGULATE_HOTEND:
 REGULATE_HOTBED:
 	LDI tolerance,0x00
 	LDI limit10,0x00
+	sbi PORTC, UMSCHALT_BIT
     in solltemp,PIND		; Lese Soll-Temp von Port D (8 Bit)
 	in temphotend,PINB		; Lese ist Temperatur von Port B (8 bit) 
 
@@ -115,8 +120,7 @@ REGULATE_HOTBED:
 
 ;******* Beginn Unterprogramm "Heizung AN/AUS" ************************************************************
 heatup:		
-		sbi PORTC, 3		;Setze Bit 3 in PORTC Heizung An
-		
+		sbi PORTC, 3		;Setze Bit 3 in PORTC Heizung An		
 		rjmp MAIN_PROGRAM_LOOP
 heatdown:
 		cbi PORTC, 3		;Lösche Bit 3 in PORTC Heizung Aus 
