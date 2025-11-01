@@ -12,8 +12,6 @@
 
 			.equ UMSCHALT_BIT  = 7		 ; Bit 7 in Port C für Umschaltung Hotend/Hotbed
 
-			.def bed		= r25
-			.def end		= r24
 			.def limit10	= r23
 			.def limit2		= r22
 			.def tolerance	= r21		 ; 
@@ -44,13 +42,13 @@ init:		LDI akku, LOW(RAMEND)	;lade akku mit lower Byte SRAM Ende
 
 		;Ports einstellen
 			LDI akku,0x00			;Wert von akku auf 0 setzen
-			LDI status,0x00
-			LDI temphotbed,0x00
-			LDI temphotend,0x00
-			LDI tolerance,0x00
-			LDI limit2,0x00 
-			LDI limit10,0x00
-			LDI temphotend,0xff
+			LDI status,0x00			;Wert von akku auf 0 setzen
+			LDI temphotbed,0x00		;Wert von akku auf 0 setzen
+			LDI temphotend,0x00		;Wert von akku auf 0 setzen	
+			LDI tolerance,0x00		;Wert von akku auf 0 setzen
+			LDI limit2,0x00 		;Wert von akku auf 0 setzen
+			LDI limit10,0x00		;Wert von akku auf 0 setzen
+			LDI temphotend,0xff		
 			OUT DDRA,temphotend		;Port A 8 Eingänge
 			LDI temphotbed,0xff			
 			OUT DDRB,temphotbed		;Port B 8 Ausgänge
@@ -65,15 +63,7 @@ MAIN_PROGRAM_LOOP:
 		
 			; --- A) Bewegungs- und Stillstandsüberwachung ---
 			rcall WAIT_FOR_START		 ; Prüfe, ob 4 Minuten Stillstand erreicht sind
-			
-			; --- B) Filament-Ende Überwachung ---
-			;rcall FILAMENT_CHECK		 ; Prüfe auf Bit 'Filament Ende' und aktiviere Stopp-Leuchte
-			
-			; --- C) Temperatur-Regelung: Hotend oder Hotbed ---
-    
-			; 1. Prüfe Umschalt-Bit (Port C Pin 7)
-			
-
+		
 BIT_UMSCHALT:
 			sbis PORTC, UMSCHALT_BIT      ; Springe zur HOTBED_REGELUNG, wenn Bit 7 (Umschaltung) = 0 (FALSE)
 		    rjmp REGULATE_HOTBED         ; Wenn Bit 7 = 1 (TRUE), regle Hotend
@@ -110,13 +100,13 @@ REGULATE_HOTBED:
 	in temphotend,PINB		; Lese ist Temperatur von Port B (8 bit) 
 
 	; Berechnung Temperaturgrenze +/- 10 grad
-	ldi tolerance,10	
-	mov limit10,solltemp		
-	sub limit10,temphotbed
-	cp limit10,tolerance
-	BRLO heatdown
+	ldi tolerance,10		; Lade den wert 10 ins Register tolerance
+	mov limit10,solltemp	; Transveriere solltemp in limit10	
+	sub limit10,temphotbed	; ziehe von limit10 temphotbed ab
+	cp limit10,tolerance	; vergleiche limit10 mit tolerance
+	BRLO heatdown			; kleiner als 10 dann ist das ergebnis wahr
 	
-	rjmp heatup
+	rjmp heatup				; Sprung zu heatup
 
 ;******* Beginn Unterprogramm "Heizung AN/AUS" ************************************************************
 heatup:		
